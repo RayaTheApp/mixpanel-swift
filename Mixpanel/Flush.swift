@@ -46,6 +46,9 @@ class Flush: AppLifecycle {
     }
 
     func flushEventsQueue(_ eventsQueue: Queue, automaticEventsEnabled: Bool?) -> Queue? {
+        if eventsQueue.contains(where: { $0["event"] as? String == "ONBOARDING_PAYMENT_SUCCESS" }) {
+          Logger.rayaLog(message: "About to flush event queue containing ONBOARDING_PAYMENT_SUCCESS")
+        }
         let (automaticEventsQueue, eventsQueue) = orderAutomaticEvents(queue: eventsQueue,
                                                         automaticEventsEnabled: automaticEventsEnabled)
         var mutableEventsQueue = flushQueue(type: .events, queue: eventsQueue)
