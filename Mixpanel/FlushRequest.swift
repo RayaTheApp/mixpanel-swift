@@ -51,18 +51,20 @@ class FlushRequest: Network {
     private func flushRequestHandler(_ base: String,
                                      resource: Resource<Int>,
                                      completion: @escaping (Bool) -> Void) {
-
+        Logger.rayaLog(message: "Flushing analytics to server")
         Network.apiRequest(base: base, resource: resource,
             failure: { (reason, data, response) in
                 self.networkConsecutiveFailures += 1
                 self.updateRetryDelay(response)
                 Logger.warn(message: "API request to \(resource.path) has failed with reason \(reason)")
+                Logger.rayaLog(message: "API request to \(resource.path) has failed with reason \(reason)")
                 completion(false)
             }, success: { (result, response) in
                 self.networkConsecutiveFailures = 0
                 self.updateRetryDelay(response)
                 if result == 0 {
                     Logger.info(message: "\(base) api rejected some items")
+                    Logger.rayaLog(message: "\(base) api rejected some items")
                 }
                 completion(true)
             })

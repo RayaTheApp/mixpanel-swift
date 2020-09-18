@@ -10,7 +10,7 @@ import Foundation
 
 /// This defines the various levels of logging that a message may be tagged with. This allows hiding and
 /// showing different logging levels at run time depending on the environment
-enum LogLevel: String {
+public enum LogLevel: String {
     /// Logging displays *all* logs and additional debug information that may be useful to a developer
     case debug
 
@@ -26,20 +26,20 @@ enum LogLevel: String {
 
 /// This holds all the data for each log message, since the formatting is up to each
 /// logging object. It is a simple bag of data
-struct LogMessage {
+public struct LogMessage {
     /// The file where this log message was created
-    let file: String
+    public let file: String
 
     /// The function where this log message was created
-    let function: String
+    public let function: String
 
     /// The text of the log message
-    let text: String
+    public let text: String
 
     /// The level of the log message
-    let level: LogLevel
+    public let level: LogLevel
 
-    init(path: String, function: String, text: String, level: LogLevel) {
+    public init(path: String, function: String, text: String, level: LogLevel) {
         if let file = path.components(separatedBy: "/").last {
             self.file = file
         } else {
@@ -52,17 +52,23 @@ struct LogMessage {
 }
 
 /// Any object that conforms to this protocol may log messages
-protocol Logging {
+public protocol Logging {
+    var isRayaLogger: Bool { get }
     func addMessage(message: LogMessage)
 }
 
-class Logger {
+public extension Logging {
+  var isRayaLogger: Bool { false }
+}
+
+public class Logger {
     private static var loggers = [Logging]()
     private static var enabledLevels = Set<LogLevel>()
     private static let readWriteLock: ReadWriteLock = ReadWriteLock(label: "loggerLock")
 
     /// Add a `Logging` object to receive all log messages
-    class func addLogging(_ logging: Logging) {
+    public class func addLogging(_ logging: Logging) {
+        guard !(logging is PrintLogging) else { return }
         readWriteLock.write {
             loggers.append(logging)
         }
@@ -129,6 +135,14 @@ class Logger {
         forwardLogMessage(LogMessage(path: path, function: function, text: "\(message())",
                                                level: .error))
     }
+
+    class func rayaLog(message: @autoclosure() -> Any, _ path: String = #file, _ function: String = #function) {
+        var loggers = [Logging]()
+        readWriteLock.read {
+            loggers = self.loggers
+        }
+        loggers.first(where: { $0.isRayaLogger })?.addMessage(message: LogMessage(path: path, function: function, text: "\(message())", level: .info))
+  }
 
     /// This forwards a `LogMessage` to each logger that has been added
     class private func forwardLogMessage(_ message: LogMessage) {
